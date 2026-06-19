@@ -1,0 +1,31 @@
+{
+  "name": "gym-locker-rental",
+  "version": "1.0.0",
+  "description": "体育馆更衣柜租用系统",
+  "main": "dist/server.js",
+  "scripts": {
+    "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "lint": "eslint src --ext .ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "sqlite3": "^5.1.6",
+    "typeorm": "^0.3.17",
+    "reflect-metadata": "^0.1.13",
+    "uuid": "^9.0.0",
+    "moment": "^2.29.4"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.17",
+    "@types/node": "^20.4.2",
+    "@types/uuid": "^9.0.2",
+    "typescript": "^5.1.6",
+    "ts-node-dev": "^2.0.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "eslint": "^8.44.0"
+  }
+}
