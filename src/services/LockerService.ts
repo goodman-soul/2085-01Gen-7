@@ -101,7 +101,7 @@ export class LockerService {
   }
 
   checkOverdue(rental: { expectedEndTime: Date; status: RentalStatus }): boolean {
-    if (rental.status !== RentalStatus.ACTIVE) return false;
+    if (rental.status !== RentalStatus.ACTIVE && rental.status !== RentalStatus.OVERDUE) return false;
     return moment().isAfter(moment(rental.expectedEndTime));
   }
 

@@ -20,10 +20,10 @@ export class OpenCode {
   })
   status!: OpenCodeStatus;
 
-  @Column({ type: 'timestamp' })
+  @Column({ type: 'datetime' })
   expiresAt!: Date;
 
-  @Column({ type: 'timestamp', nullable: true })
+  @Column({ type: 'datetime', nullable: true })
   usedAt?: Date;
 
   @Column({ nullable: true })

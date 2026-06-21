@@ -1,4 +1,4 @@
-import { Repository } from 'typeorm';
+import { Repository, In } from 'typeorm';
 import { AppDataSource } from '../config/database';
 import { Rental } from '../entities/Rental';
 import { OpenCode } from '../entities/OpenCode';
@@ -116,7 +116,7 @@ export class RentalService {
       throw new Error('租用记录不存在');
     }
 
-    if (rental.status !== RentalStatus.ACTIVE) {
+    if (rental.status !== RentalStatus.ACTIVE && rental.status !== RentalStatus.OVERDUE) {
       throw new Error('租用已结束或已取消');
     }
 
@@ -164,6 +164,10 @@ export class RentalService {
       throw new Error('租用记录不存在');
     }
 
+    if (rental.status !== RentalStatus.ACTIVE && rental.status !== RentalStatus.OVERDUE) {
+      throw new Error('租用已结束或已取消');
+    }
+
     const openCode = await this.openCodeRepository.findOne({
       where: {
         rentalId,
@@ -206,15 +210,16 @@ export class RentalService {
       throw new Error('租用记录不存在');
     }
 
-    if (rental.status !== RentalStatus.ACTIVE) {
+    if (rental.status !== RentalStatus.ACTIVE && rental.status !== RentalStatus.OVERDUE) {
       throw new Error('租用已结束或已取消');
     }
 
     const actualEndTime = new Date();
+    const durationHours = moment(rental.expectedEndTime).diff(moment(rental.startTime), 'hours');
     const { baseFee, overtimeFee, totalFee, overtimeHours } = this.lockerService.calculateFees(
       rental.locker.hourlyRate,
       rental.locker.overtimeRate,
-      moment(rental.expectedEndTime).diff(moment(rental.startTime), 'hours'),
+      durationHours,
       rental.startTime,
       actualEndTime
     );
@@ -226,7 +231,7 @@ export class RentalService {
       }
 
       if (member.balance < overtimeFee) {
-        throw new Error(`余额不足，需支付超时费用${overtimeFee}元`);
+        throw new Error(`余额不足，需支付超时费用${overtimeFee}元，请先充值后再结束租用`);
       }
 
       member.balance -= overtimeFee;
@@ -273,7 +278,7 @@ export class RentalService {
     const activeRental = await this.rentalRepository.findOne({
       where: {
         lockerId: locker.id,
-        status: RentalStatus.ACTIVE,
+        status: In([RentalStatus.ACTIVE, RentalStatus.OVERDUE]),
       },
     });
 
@@ -297,7 +302,7 @@ export class RentalService {
       throw new Error('租用记录不存在');
     }
 
-    if (rental.status !== RentalStatus.ACTIVE) {
+    if (rental.status !== RentalStatus.ACTIVE && rental.status !== RentalStatus.OVERDUE) {
       throw new Error('租用已结束或已取消');
     }
 
@@ -388,30 +393,37 @@ export class RentalService {
     return this.rentalRepository.findOne({
       where: {
         lockerId: locker.id,
-        status: RentalStatus.ACTIVE,
+        status: In([RentalStatus.ACTIVE, RentalStatus.OVERDUE]),
       },
       relations: ['member', 'locker'],
+      order: { createdAt: 'DESC' },
     });
   }
 
-  async checkAndUpdateOverdue(): Promise<void> {
+  async checkAndUpdateOverdue(): Promise<{ updated: number }> {
     const activeRentals = await this.rentalRepository.find({
       where: { status: RentalStatus.ACTIVE },
       relations: ['locker'],
     });
 
+    let updatedCount = 0;
+
     for (const rental of activeRentals) {
+      const durationHours = moment(rental.expectedEndTime).diff(moment(rental.startTime), 'hours');
       const { isOverdue } = this.lockerService.calculateCurrentOvertime(
         rental.startTime,
-        moment(rental.expectedEndTime).diff(moment(rental.startTime), 'hours'),
+        durationHours,
         rental.locker.overtimeRate
       );
 
-      if (isOverdue && rental.status !== RentalStatus.OVERDUE) {
+      if (isOverdue) {
         rental.status = RentalStatus.OVERDUE;
         await this.rentalRepository.save(rental);
+        updatedCount++;
       }
     }
+
+    return { updated: updatedCount };
   }
 
   async getMemberById(memberId: string): Promise<Member | null> {

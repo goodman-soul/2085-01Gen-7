@@ -22,13 +22,13 @@ export class Rental {
   })
   status!: RentalStatus;
 
-  @Column({ type: 'timestamp' })
+  @Column({ type: 'datetime' })
   startTime!: Date;
 
-  @Column({ type: 'timestamp' })
+  @Column({ type: 'datetime' })
   expectedEndTime!: Date;
 
-  @Column({ type: 'timestamp', nullable: true })
+  @Column({ type: 'datetime', nullable: true })
   actualEndTime?: Date;
 
   @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
